@@ -256,10 +256,16 @@ straightforward to run as a Kubernetes `Deployment`:
 ---
 
 ## Suggestions for Improvements
-1-	- **Content moderation guardrails.** Neither the LLM nor the search layer currently filters harmful content by default — `openai/gpt-oss-120b` on Groq relies only on its baseline training-time safety, and Tavily blocks malicious sources/PII/prompt injection but not hate speech or other objectionable content in results. A production version should add an  explicit moderation step (e.g. Groq's `Llama-Guard-4-12B`, run against both the incoming question and the final answer) that refuses or redirects flagged content instead of passing it straight through the swarm.
-2-	** Memory.** The swarm currently treats every question as a fresh, independent request. Adding conversation history (via LangGraph's checkpointer) would let it handle follow-up questions naturally.
-3-	 **Streaming responses.** Right now the full answer is returned at once; streaming tokens back while the agent is thinking (e.g. ChatGPT, Claude) would improve perceived latency, especially for the research route which involves multiple LLM and tool calls in sequence.
-4-	**Observability/tracing.** Adding LangSmith (or similar) tracing would make it possible to inspect exactly which tools were called, with what arguments, and why the supervisor routed a given question the way it did— useful for debugging misrouted or poorly-grounded answers in production.
-5-	 **Adaptive search depth.** Tavily supports a "basic" vs "advanced" search depth; currently every query uses the same settings. Routing simple factual questions to basic (faster, cheaper) and complex/ambiguous ones to advanced would be a reasonable optimization.
-6-	 **Broader automated test coverage.** The current benchmark checks routing behavior for 3 fixed cases. A larger, more varied test set — including adversarial or edge-case questions — would catch regressions with more confidence.
-7-	 **External vector store for production.** Chroma's embedded/local mode (used here) isn't safely shared across multiple replicas. A production deployment would use a hosted vector DB instead, as noted in the Kubernetes section above.
+1- **Content moderation guardrails.** Neither the LLM nor the search layer currently filters harmful content by default — `openai/gpt-oss-120b` on Groq relies only on its baseline training-time safety, and Tavily blocks malicious sources/PII/prompt injection but not hate speech or other objectionable content in results. A production version should add an  explicit moderation step (e.g. Groq's `Llama-Guard-4-12B`, run against both the incoming question and the final answer) that refuses or redirects flagged content instead of passing it straight through the swarm.
+
+2-** Memory.** The swarm currently treats every question as a fresh, independent request. Adding conversation history (via LangGraph's checkpointer) would let it handle follow-up questions naturally.
+
+3-**Streaming responses.** Right now the full answer is returned at once; streaming tokens back while the agent is thinking (e.g. ChatGPT, Claude) would improve perceived latency, especially for the research route which involves multiple LLM and tool calls in sequence.
+
+4-**Observability/tracing.** Adding LangSmith (or similar) tracing would make it possible to inspect exactly which tools were called, with what arguments, and why the supervisor routed a given question the way it did— useful for debugging misrouted or poorly-grounded answers in production.
+
+5-**Adaptive search depth.** Tavily supports a "basic" vs "advanced" search depth; currently every query uses the same settings. Routing simple factual questions to basic (faster, cheaper) and complex/ambiguous ones to advanced would be a reasonable optimization.
+
+6-**Broader automated test coverage.** The current benchmark checks routing behavior for 3 fixed cases. A larger, more varied test set — including adversarial or edge-case questions — would catch regressions with more confidence.
+
+7-**External vector store for production.** Chroma's embedded/local mode (used here) isn't safely shared across multiple replicas. A production deployment would use a hosted vector DB instead, as noted in the Kubernetes section above.
