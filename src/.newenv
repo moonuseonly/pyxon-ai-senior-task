@@ -1,5 +1,0 @@
-#API Keys
-#groq key obtained from: https://console.groq.com/keys
-GROQ_API_KEY= "Replace with API key"
-#tavily key obtained from: https://app.tavily.com/home
-TAVILY_API_KEY="Replace with API key"
