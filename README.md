@@ -18,39 +18,40 @@ retrieved evidence, and returns a short, citation-free final answer.
 - [x] RAG integration (LlamaIndex + local embeddings + Chroma)
 - [x] Small benchmark (3 fixed Q&A pairs, checks routing behavior)
 - [x] Full end-to-end runnable example (`main.py`)
-- [ ] Docker/K8s deployment notes (not included in this pass)
+- [x] Docker (`docker/Dockerfile`) + a written K8s/Helm deployment outline
 
 ---
 
 ## Architecture
 
 ```
-                        ┌──────────────────┐
-        question   ───► │    Supervisor     │
+
+                        ┌────────────────────┐
+        question   ───► │    Supervisor      │
                         │  URL in question?  │
-                        │  → research         │
-                        │  else ask the LLM   │
+                        │  → research        │
+                        │  else ask the LLM  │
                         └─────────┬──────────┘
-                    ┌─────────────┴─────────────┐
-                    ▼                            ▼
-          ┌──────────────────┐         ┌──────────────────┐
-          │  Research Agent   │         │   Direct Answer    │
-          │  tools:           │         │  (no tools, plain   │
-          │   - web_search    │         │   LLM call)          │
-          │   - fetch_url     │         └──────────┬───────────┘
-          └─────────┬─────────┘                    │
-                    ▼                                │
-          ┌──────────────────┐                       │
-          │   RAG (Chroma)     │                       │
-          │  index findings →   │                       │
-          │  retrieve top-3      │                       │
-          └─────────┬─────────┘                       │
-                    ▼                                │
-          ┌──────────────────┐                       │
-          │   Writer Agent      │                       │
-          │  synthesizes final   │                       │
-          │  grounded answer      │                       │
-          └─────────┬─────────┘                       │
+                    ┌─────────────┴───────────────────┐
+                    ▼                                 ▼
+          ┌───────────────────┐              ┌────────────────────┐
+          │  Research Agent   │              │   Direct Answer    │
+          │  tools:           │              │  (no tools, plain  │
+          │   - web_search    │              │   LLM call)        │
+          │   - fetch_url     │              └──────────┬─────────┘
+          └─────────┬─────────┘                         │
+                    ▼                                   │
+          ┌────────────────────┐                        │
+          │   RAG (Chroma)     │                        │
+          │  index findings →  │                        │
+          │  retrieve top-3    │                        │
+          └─────────┬──────────┘                        │
+                    ▼                                   │
+          ┌────────────────────┐                        │
+          │   Writer Agent     │                        │
+          │  synthesizes final │                        │
+          │  grounded answer   │                        │
+          └─────────┬──────────┘                        │
                     └───────────────┬───────────────────┘
                                     ▼
                               final_answer
@@ -194,6 +195,55 @@ pyxon-agent-swarm/
 
 ---
 
+## Running with Docker
+
+The Dockerfile lives in `docker/Dockerfile`, but the build context is the
+project root (it needs `main.py` and `src/`), so build with `-f`:
+
+```bash
+docker build -f docker/Dockerfile -t pyxon-agent-swarm .
+```
+
+Run the benchmark (keys are passed at runtime via `--env-file`, never baked
+into the image):
+
+```bash
+docker run --env-file .env pyxon-agent-swarm
+```
+
+Ask a single question:
+
+```bash
+docker run --env-file .env pyxon-agent-swarm python main.py "What is the current weather in Riyadh?"
+```
+
+Persist the Chroma vector store across container runs by mounting a volume:
+
+```bash
+docker run --env-file .env -v "$(pwd)/chroma_db:/app/chroma_db" pyxon-agent-swarm
+```
+
+### Toward production deployment (K8s/Helm outline)
+
+This container is stateless aside from the local Chroma DB, which makes it
+straightforward to run as a Kubernetes `Deployment`:
+- API keys would move from `.env` to a `Secret`, mounted as environment
+  variables into the pod (never baked into the image, same principle as
+  local dev).
+- The local Chroma store would move to a `PersistentVolumeClaim` (or,
+  for real multi-replica production use, an external vector DB service
+  instead of an embedded one, since Chroma's local mode isn't safely
+  shared across replicas).
+- A `Service` + `Ingress` would front it if this became an HTTP API rather
+  than a CLI (e.g. wrapped in FastAPI) — reasonable next step if this were
+  productionized.
+- A `HorizontalPodAutoscaler` would scale replicas on CPU/request volume,
+  since each request is a handful of LLM calls, not long-running compute.
+- A Helm chart would template the above (image tag, replica count, secret
+  references, resource limits) for repeatable deploys across environments.
+
+---
+
 ## Security notes
 
 - No API keys are hardcoded anywhere in the code — both `GROQ_API_KEY` and
@@ -202,3 +252,14 @@ pyxon-agent-swarm/
 - `fetch_url` makes outbound GET requests to whatever URL it's given; this
   is scoped to read-only GET requests with a 10-second timeout, and content
   is truncated before being passed to the LLM.
+
+---
+
+## Suggestions for Improvements
+1-	- **Content moderation guardrails.** Neither the LLM nor the search layer currently filters harmful content by default — `openai/gpt-oss-120b` on Groq relies only on its baseline training-time safety, and Tavily blocks malicious sources/PII/prompt injection but not hate speech or other objectionable content in results. A production version should add an  explicit moderation step (e.g. Groq's `Llama-Guard-4-12B`, run against both the incoming question and the final answer) that refuses or redirects flagged content instead of passing it straight through the swarm.
+2-	** Memory.** The swarm currently treats every question as a fresh, independent request. Adding conversation history (via LangGraph's checkpointer) would let it handle follow-up questions naturally.
+3-	 **Streaming responses.** Right now the full answer is returned at once; streaming tokens back while the agent is thinking (e.g. ChatGPT, Claude) would improve perceived latency, especially for the research route which involves multiple LLM and tool calls in sequence.
+4-	**Observability/tracing.** Adding LangSmith (or similar) tracing would make it possible to inspect exactly which tools were called, with what arguments, and why the supervisor routed a given question the way it did— useful for debugging misrouted or poorly-grounded answers in production.
+5-	 **Adaptive search depth.** Tavily supports a "basic" vs "advanced" search depth; currently every query uses the same settings. Routing simple factual questions to basic (faster, cheaper) and complex/ambiguous ones to advanced would be a reasonable optimization.
+6-	 **Broader automated test coverage.** The current benchmark checks routing behavior for 3 fixed cases. A larger, more varied test set — including adversarial or edge-case questions — would catch regressions with more confidence.
+7-	 **External vector store for production.** Chroma's embedded/local mode (used here) isn't safely shared across multiple replicas. A production deployment would use a hosted vector DB instead, as noted in the Kubernetes section above.
