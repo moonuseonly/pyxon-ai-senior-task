@@ -1,239 +1,204 @@
-# Pyxon AI - Senior AI Engineer Entry Task
+# Pyxon AI Entry Task — Agentic Search + URL + RAG Swarm
 
-## Overview
+A multi-agent system built with **LangGraph** (orchestration) and **LlamaIndex**
+(RAG), backed entirely by free-tier / local tools: **Groq** (LLM), **Tavily**
++ **DuckDuckGo** (search), and a local **HuggingFace + Chroma** RAG layer.
 
-We are looking for a highly motivated **Senior AI Engineer** to join our team. In this role, you will act as a critical bridge between our core AI platform and our enterprise clients. You will lead the end-to-end deployment of cutting-edge **Agentic AI** and **Generative AI** solutions in complex, secure environments, working directly with customers to solve real-world problems in sectors like finance, healthcare, and telecommunications.
-
-This entry task focuses on **agentic systems**: building agents that use external data sources (e.g., web search, URLs/APIs), reason over that data, and answer user questions—aligned with RAG, agent swarms, and production-grade deployment.
-
----
-
-## Role Context
-
-### Key Responsibilities (from the role)
-
-- **Lead End-to-End Deployments:** Architect and lead the deployment of an AI workspace platform in private cloud, hybrid, and on-premises environments.
-- **Develop Agentic & Generative AI Solutions:** Design and build features for an AI workspace, including autonomous agents that interact with sensitive enterprise data and generate multi-modal outputs.
-- **Model Customization & Fine-Tuning:** Customize base models via fine-tuning (e.g., LoRA, QLoRA) and, where applicable, TTS models for custom voices or domain-specific acoustics.
-- **Partner with Enterprise Clients:** Work with client IT/engineering teams on infrastructure, security, and data management as a trusted technical advisor.
-- **Ensure Security and Compliance:** Design deployment strategies that meet data privacy, security standards, and regulatory compliance.
-- **Full Lifecycle Ownership:** From conceptualizing features from customer feedback to troubleshooting and resolving issues in production.
-- **Experiment and Innovate:** Operate at high velocity and experiment with new approaches to engage customers and exceed expectations.
-
-### Relevant Required Skills
-
-- **Agentic AI & RAG:** Building and deploying highly performant RAG applications and AI agents using modern frameworks and techniques.
-- **Deployment & Orchestration:** Production Kubernetes, Helm, DevOps, CI/CD.
-- **Infrastructure:** Strong expertise in at least one major cloud (AWS, Azure, GCP); networking, security, virtualization.
-- **Application Development:** Production-grade code, with a strong preference for **Python**; ability to read, understand, and fix issues across the stack.
-- **Fine-Tuning:** Experience with LLM fine-tuning (e.g., LoRA, QLoRA) and optionally TTS fine-tuning.
-- **Customer-Facing:** Experience working directly with customers, gathering requirements, and guiding complex technical implementations.
-- **Technical Knowledge:** Transformers, prompt engineering, security best practices for AI, infrastructure-as-code (e.g., Terraform, Pulumi).
-
-**Nice-to-have:** Multi-modal AI (speech/audio), traditional ML/DL, model quantization/edge deployment, other AI frameworks (LangChain, LlamaIndex), embedding models.
+It takes a user question, routes it through a supervisor, gathers external
+data (web search and/or a specific URL) when needed, grounds the answer in
+retrieved evidence, and returns a short, citation-free final answer.
 
 ---
 
-## Task Requirements
+## Features implemented
 
-Your task is to demonstrate **agentic AI** skills by building one or more agents that use **external data sources** and an **LLM** to answer user questions. You may use **LangChain** (and related packages such as **LangGraph**) or another framework of your choice.
-
-### 1. Agent with Search / Data Source (e.g., Google)
-
-Build an **agent that has access to a data source such as Google Search** and uses an LLM to answer questions based on that data.
-
-- The agent should be able to **query the data source** (e.g., run search queries).
-- The agent should **consume the returned content** (snippets, links, or full pages) and use the **LLM** to synthesize an answer.
-- Optionally, combine with **RAG**: persist search results (or fetched pages) into a vector store and use retrieval before generation for better grounding and citations.
-
-**Does LangChain support this?** Yes. LangChain provides:
-
-- **Google Search:** e.g. `GoogleSearchAPIWrapper` (requires `GOOGLE_API_KEY` and `GOOGLE_CSE_ID`). You can expose it as a tool and use it with an agent.
-- **Agent + tools:** Use `load_tools(["google-search"], llm=llm)` and an agent (e.g. ReAct) so the LLM decides when to search and how to use results to answer.
-
-You are free to use another search provider (e.g., SerpAPI, Bing, Tavily) if you prefer.
-
-### 2. Agent That Requests URLs and Processes Them (e.g., APIs / Web Pages)
-
-Build an **agent that can make HTTP requests to URLs**, process the response (e.g., HTML or JSON from an API), **understand what is there**, and use that information to **answer user questions**.
-
-- The agent should be able to **call URLs** (GET and, if useful, POST) and get response content.
-- The agent should **interpret** the content (e.g., parse JSON, extract text from HTML) and feed it to the LLM.
-- The LLM should use this content to **answer questions** or perform tasks (e.g., “What does this API return?” or “Summarize the content at this URL”).
-
-**Does LangChain support this?** Yes. LangChain provides:
-
-- **Requests tools:** e.g. `RequestsGetTool` (GET a URL and return response text). Load via `load_tools(["requests_all"], allow_dangerous_requests=True)` (opt-in for security). Similar tools exist for POST, PATCH, PUT, DELETE.
-- You can also build **custom tools** that call `requests` or `httpx`, parse JSON/HTML, and return a string for the LLM.
-
-Use these (or custom tools) inside an agent so the LLM decides which URLs to call and how to use the responses.
-
-### 3. Agent Swarm (Multi-Agent System) with LangChain / LangGraph
-
-Create an **agent swarm** (multi-agent system) using **LangChain** (and optionally **LangGraph**).
-
-- **Multiple agents** with distinct roles (e.g., one for search, one for URL fetching, one for synthesis or coding).
-- **Coordination:** agents can hand off tasks, use each other as tools, or be orchestrated by a router/supervisor.
-- **Data flow:** ensure that data from external sources (search, URLs/APIs) is used by the swarm to answer user questions.
-
-**Does LangChain/LangGraph support this?** Yes. LangGraph provides:
-
-- **Multi-agent patterns:** subagents, handoffs, router, or custom workflows.
-- **Swarm-style coordination:** e.g. `langgraph-swarm` with `create_swarm()` for multiple agents (graphs) working together.
-- **Examples:** multi-agent collaboration, multi-agent networks (e.g., inspired by AutoGen-style designs).
-
-Your swarm should demonstrate at least one of: search-backed answers, URL/API-backed answers, or a clear division of labor (e.g., researcher + writer + critic).
+- [x] Agent with a search data source (Tavily, with a DuckDuckGo fallback) + LLM
+- [x] Agent that fetches URLs/APIs and uses the content to answer
+- [x] Agent swarm (LangGraph, 4 nodes: supervisor → research/direct → writer)
+- [x] RAG integration (LlamaIndex + local embeddings + Chroma)
+- [x] Small benchmark (3 fixed Q&A pairs, checks routing behavior)
+- [x] Full end-to-end runnable example (`main.py`)
+- [ ] Docker/K8s deployment notes (not included in this pass)
 
 ---
-
-## Deliverables
-
-Provide the following in your submission:
-
-1. **Working code** for:
-   - An agent that uses a search/data source (e.g., Google) + LLM to answer questions, and/or  
-   - An agent that requests URLs (and optionally APIs), processes the content, and uses the LLM to answer, and/or  
-   - An agent swarm (multi-agent system) that uses external data (search and/or URLs) and an LLM to answer questions.
-
-2. **One full end-to-end example** (script or notebook) that:
-   - Takes a **user question** (e.g., “What is the current weather in Amman?” or “Summarize the content at https://example.com” or “What does the API at https://api.example.com/status return?”).
-   - Uses your agent(s) to **fetch data** (search and/or URL/API).
-   - **Processes** the data (parse, optionally store in a vector store for RAG).
-   - Uses the **LLM** to produce a clear **answer** (and optionally citations/sources).
-
-3. **README** (or section in a README) that explains:
-   - How to run the code (dependencies, env vars, e.g. `GOOGLE_API_KEY`, `GOOGLE_CSE_ID`, LLM API keys).
-   - Architecture: which agents/tools you used, how data flows from search/URLs to the LLM.
-   - One or two example questions and the expected behavior (or sample outputs).
-
-4. **Optional but valued:**
-   - Simple **RAG** integration (e.g., index search results or URL content in a vector store, then retrieve before generating).
-   - **Tests** or a small **benchmark** (e.g., a few fixed Q&A pairs) to verify behavior.
-   - **Docker** or **Kubernetes/Helm** outline for running the agent in a container or cluster (aligned with the role’s deployment focus).
-
----
-
-## Full Example Outline (Reference)
-
-Below is a **minimal structure** for a single agent that uses **Google Search** and **URL fetching** to answer questions. You can extend this into a swarm or add RAG.
-
-```python
-# Example structure (pseudocode – adapt to your preferred LangChain/LangGraph APIs)
-
-# 1. Tools
-# - Google Search: GoogleSearchAPIWrapper or load_tools(["google-search"], llm=llm)
-# - URL fetch: RequestsGetTool or load_tools(["requests_all"], allow_dangerous_requests=True)
-# - Optional: custom tool that GETs a URL, parses JSON/HTML, returns a string
-
-# 2. Agent
-# - Create an agent (e.g. create_react_agent or AgentExecutor) with tools = [search_tool, requests_tool]
-# - System message: "You can search the web and fetch URLs. Use the results to answer the user's question."
-
-# 3. Run
-# - user_question = "What is the latest news about X?" or "What does https://api.example.com/info return?"
-# - result = agent.invoke({"input": user_question})
-# - Print result["output"] and, if available, citations/sources
-```
-
-**LangChain/LangGraph references (as of 2024):**
-
-- **Google Search:** [LangChain Google Search integration](https://python.langchain.com/docs/integrations/tools/google_search/)  
-- **Requests (URL fetch):** [LangChain Requests tools](https://python.langchain.com/docs/integrations/tools/requests/) (use `allow_dangerous_requests=True` where required)  
-- **Multi-agent / swarm:** [LangGraph multi-agent](https://langchain-ai.github.io/langgraph/agents/multi-agent/), [LangGraph Swarm](https://reference.langchain.com/python/langgraph/swarm/)  
-- **RAG:** LangChain retrieval chains and vector stores (e.g., from document loaders or from fetched URL content)
-
-You may implement in **Python** with **LangChain/LangGraph** or another framework (e.g., LlamaIndex, custom orchestration); the above is a suggested path that matches the “LangChain agent with Google + URL requests” idea.
-
----
-
-## Technical Specifications
-
-### Technology Stack
-
-- **Language:** Python preferred (per role).
-- **Frameworks:** LangChain, LangGraph, LlamaIndex, or equivalent agent/RAG frameworks.
-- **LLM:** Any compatible model (OpenAI, Anthropic, local models, etc.); specify in README.
-- **Search:** Google Search API (or SerpAPI, Tavily, Bing, etc.).
-- **URL/HTTP:** `requests` or `httpx`; LangChain’s Requests tools or custom tools.
-- **Optional:** Vector store (Chroma, FAISS, etc.) for RAG; Docker/K8s for deployment.
-
-### Security and Safety
-
-- Do **not** hardcode API keys; use environment variables or a secrets manager.
-- If using `requests_all` or similar, be aware of the security implications (arbitrary URL fetch); use `allow_dangerous_requests` only where necessary and document it.
-- For deployment, consider network policies, private endpoints, and least-privilege access (aligned with the role’s security and compliance focus).
-
----
-
-## Submission Guidelines
-
-### Process
-
-1. **Fork this repository** to your GitHub account.
-2. **Implement** the required agent(s) and the full example as described above.
-3. **Add a README** :
-   - How to run the code (install, env vars, commands).
-   - Architecture and data flow (search → agent, URL → agent, or swarm).
-   - Example questions and expected behavior (or sample outputs).
-4. **Create a Pull Request** with:
-   - **Contact information** (email or phone).
-   - **Summary** of what was implemented (which of the three tasks: search agent, URL agent, swarm).
-   - **How to run** and any **assumptions** (e.g., which search provider, which LLM).
-   - **Optional:** Demo link (e.g., Streamlit/Gradio app), benchmark results, or deployment notes.
-
-### PR Description Template
-
-```markdown
-## Summary
-Brief overview: e.g., "Agent using Google Search + URL fetch + LLM; optional swarm with LangGraph."
-
-## Contact Information
-📧 Email: [your-email@example.com] or 📱 Phone: [your-phone-number]
-
-## Features Implemented
-- [ ] Agent with search data source (e.g., Google) + LLM answers
-- [ ] Agent that requests URLs/APIs and uses content to answer
-- [ ] Agent swarm (multi-agent) with LangChain/LangGraph
-- [ ] Full end-to-end example (question → data → answer)
-- [ ] README with run instructions and architecture
-- [ ] (Optional) RAG, tests, or Docker/K8s notes
 
 ## Architecture
-Description of agents, tools, and data flow.
 
-## How to Run
-Dependencies, env vars, and commands.
+```
+                        ┌──────────────────┐
+        question   ───► │    Supervisor     │
+                        │  URL in question?  │
+                        │  → research         │
+                        │  else ask the LLM   │
+                        └─────────┬──────────┘
+                    ┌─────────────┴─────────────┐
+                    ▼                            ▼
+          ┌──────────────────┐         ┌──────────────────┐
+          │  Research Agent   │         │   Direct Answer    │
+          │  tools:           │         │  (no tools, plain   │
+          │   - web_search    │         │   LLM call)          │
+          │   - fetch_url     │         └──────────┬───────────┘
+          └─────────┬─────────┘                    │
+                    ▼                                │
+          ┌──────────────────┐                       │
+          │   RAG (Chroma)     │                       │
+          │  index findings →   │                       │
+          │  retrieve top-3      │                       │
+          └─────────┬─────────┘                       │
+                    ▼                                │
+          ┌──────────────────┐                       │
+          │   Writer Agent      │                       │
+          │  synthesizes final   │                       │
+          │  grounded answer      │                       │
+          └─────────┬─────────┘                       │
+                    └───────────────┬───────────────────┘
+                                    ▼
+                              final_answer
+```
 
-## Example Questions & Behavior
-1–2 example questions and what the agent(s) do.
+**Division of labor:**
+- **Supervisor** (`src/graph.py::supervisor_node`) — decides whether a question
+  needs external data. If the question literally contains a URL, it always
+  routes to research (a deterministic check — this isn't left to LLM judgment,
+  see *Design decisions* below). Otherwise it asks the LLM to classify the
+  question as needing research or not.
+- **Research Agent** (`src/agent.py`) — a tool-using LangChain agent
+  (`create_agent`) with two tools: `web_search` (Tavily, DuckDuckGo fallback)
+  and `fetch_url` (GET requests + HTML/JSON parsing). It decides on its own
+  which tool(s) to call and how many times.
+- **RAG layer** (`src/rag.py`) — every research result gets chunked, embedded
+  locally (`sentence-transformers/all-MiniLM-L6-v2`, no API key, no rate
+  limit), and stored in a persistent Chroma collection. The top-3 most
+  relevant chunks for the *specific question* are retrieved before the writer
+  agent runs — this is the actual "retrieval before generation" step, and it
+  means the final answer is grounded in indexed evidence rather than just
+  whatever the research agent happened to say last.
+- **Writer Agent** (`src/graph.py::writer_node`) — a separate, tools-free LLM
+  call that reads only the retrieved findings and produces one short (1-3
+  sentence), plain-prose answer. Splitting this out from the research agent
+  keeps the final answer clean, since the research agent's own output can
+  include tool-call reasoning traces.
+- **Direct Answer** (`src/graph.py::direct_node`) — for questions that don't
+  need external data (e.g. arithmetic), skips research/RAG entirely and
+  answers straight from the LLM.
+
+### Design decisions worth calling out
+
+- **Model choice:** `openai/gpt-oss-120b` on Groq. Originally targeted
+  `llama-3.3-70b-versatile`, but Groq deprecated it (June 2026) in favor of
+  this model, which also has stronger tool-calling reliability.
+- **URL routing is deterministic, not LLM-judged.** During testing, letting
+  the supervisor's LLM call decide the route caused a real hallucination: for
+  a question containing a GitHub API URL, the model decided it already "knew"
+  the answer and skipped research — then fabricated a plausible-looking but
+  fake JSON response (invented star counts, timestamps, IDs). Fix: if a
+  question contains `http://` or `https://`, routing to research is forced,
+  no LLM judgment involved. This is documented in `supervisor_node`.
+- **Search fallback:** Tavily is tried first (cleaner, agent-optimized
+  results); if it errors for any reason, the tool silently falls back to
+  DuckDuckGo, which needs no API key at all.
+- **Grounding constraint:** every agent's system prompt explicitly forbids
+  guessing or filling in gaps beyond what tool/search results actually say —
+  this is the main anti-hallucination guardrail, on top of the RAG retrieval
+  step.
+
+---
+
+## How to run
+
+### 1. Requirements
+- Python 3.11+
+- Free API keys (no credit card needed for either):
+  - **Groq**: https://console.groq.com → API Keys
+  - **Tavily**: https://tavily.com → Dashboard
+
+### 2. Setup (Windows / PowerShell)
+
+```powershell
+python -m venv newenv
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+.\newenv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+(macOS/Linux: `python3 -m venv newenv && source newenv/bin/activate` instead
+of the two PowerShell-specific lines.)
+
+### 3. Add your API keys
+
+```powershell
+cp .env.example .env
+```
+
+Open `.env` and paste your real `GROQ_API_KEY` and `TAVILY_API_KEY`.
+
+### 4. Run
+
+**Run the benchmark** (3 fixed Q&A pairs, checks routing + prints answers):
+```powershell
+python main.py
+```
+
+**Ask a single question:**
+```powershell
+python main.py "What is the current weather in Riyadh?"
+```
+
+First run will be a little slower — it downloads the local embedding model
+(~90MB, one-time only) and creates a `chroma_db/` folder for the vector
+store (persists between runs).
+
+---
+
+## Example questions & expected behavior
+
+| Question | Route | What happens |
+|---|---|---|
+| `What is 15% of 200?` | `direct` | Supervisor sees no URL and no need for external info → answers straight from the LLM, no tools called. |
+| `What is the current weather in Riyadh?` | `research` | Supervisor routes to research → `web_search` called via Tavily/DuckDuckGo → results indexed in Chroma → retrieved → writer produces a short grounded answer. |
+| `What does the API at https://api.github.com/repos/langchain-ai/langgraph return?` | `research` (forced) | URL detected → `fetch_url` called directly on the API → JSON parsed → writer describes the actual response fields, not a guessed/fabricated one. |
+
+---
 
 ## Assumptions
-Any assumptions about APIs, models, or environment.
+
+- LLM: Groq's `openai/gpt-oss-120b` (free tier, no card required).
+- Search: Tavily as primary provider (free tier, 1,000 calls/month), with
+  DuckDuckGo (`duckduckgo-search`, no key) as an automatic fallback.
+- Embeddings: local `sentence-transformers/all-MiniLM-L6-v2` via
+  HuggingFace, chosen specifically to keep RAG indexing free and decoupled
+  from the LLM's rate limit.
+- Vector store: Chroma, persisted locally to `./chroma_db`.
+- Content fetched via `fetch_url` is truncated to 1,500 characters to keep
+  tool output focused and within reasonable context size.
+
+---
+
+## Project structure
+
+```
+pyxon-agent-swarm/
+├── main.py                  # entry point: benchmark or single-question CLI
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── src/
+    ├── config.py             # env vars, Groq LLM, embedding model setup
+    ├── rag.py                 # Chroma indexing + retrieval
+    ├── agent.py                # research_agent (web_search + fetch_url tools)
+    ├── graph.py                 # SwarmState + supervisor/research/direct/writer nodes
+    └── tools/
+        ├── search_tool.py       # Tavily + DuckDuckGo fallback
+        └── url_tool.py            # HTTP GET + HTML/JSON parsing
 ```
 
 ---
 
-## Evaluation Criteria
+## Security notes
 
-Submissions will be evaluated on:
-
-1. **Functionality:** Agent(s) correctly use search and/or URL/API data and produce coherent, grounded answers.
-2. **Code quality:** Clear, maintainable, and documented code.
-3. **Design:** Sensible choice of tools, prompts, and (if applicable) swarm coordination.
-4. **Completeness:** Full runnable example and README; no placeholders for critical paths.
-5. **Security awareness:** No hardcoded secrets; documentation of any dangerous options.
-6. **Bonus:** RAG integration, tests, or deployment-oriented notes (Docker/K8s) as differentiators.
-
----
-
-## Summary of “Does LangChain have that?”
-
-| Requirement | LangChain/LangGraph support |
-|-------------|-----------------------------|
-| Agent with access to data source like Google | ✅ Yes – e.g. `GoogleSearchAPIWrapper`, `load_tools(["google-search"])` with an agent. |
-| Agent uses LLM to answer based on that data | ✅ Yes – agent uses tool results as context for the LLM to generate answers. |
-| Agent can request URLs and process like APIs | ✅ Yes – e.g. `RequestsGetTool` / `requests_all`; custom tools for parsing JSON/HTML. |
-| Agent swarm / multi-agent | ✅ Yes – LangGraph multi-agent patterns and `langgraph-swarm` (e.g. `create_swarm()`). |
-| Full example | ✅ This README provides an outline; your submission should provide a full runnable example. |
-
-Good luck. We look forward to your implementation.
+- No API keys are hardcoded anywhere in the code — both `GROQ_API_KEY` and
+  `TAVILY_API_KEY` are loaded from environment variables via `.env`
+  (git-ignored).
+- `fetch_url` makes outbound GET requests to whatever URL it's given; this
+  is scoped to read-only GET requests with a 10-second timeout, and content
+  is truncated before being passed to the LLM.
